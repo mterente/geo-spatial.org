@@ -6,8 +6,6 @@
 
 ----------------------------
 
-## 		I. Geoprocesare imagini
-
 ```sh
 #~ /bin/.sh
 
@@ -46,6 +44,11 @@
 			#~ (!) -a_nodata -32767
 		cd output; rename .tif- "-" *.tif; ll; cd ..
 			#~ am făcut puțină curățenie
+
+	#~ pt win:	
+	#~ for %i in (srtm-L-34-0??.tif) do gdal_translate -a_srs EPSG:3844 -a_nodata -32767 %i output\%i-s42.tif	
+
+	#~ cd ouput && ren srtm-L-34-0??.tif-s42.tif srtm-L-34-0??-s42.tif && cd ..	
 		
 #~ 3.Transformă din .tif in .img
 		gdal_translate --formats
@@ -75,11 +78,13 @@
 		
 		#~ în mod batch
 		for i in landsat321-L-34-0??.tif; do gdal_translate -of webp -b 3 -b 2 -b 1 -a_srs EPSG:3844 $i output/$i.webp; done
-			
 		cd output; rm *.xml; rename .tif. "." *.img; ll; cd ..
 			#~ puțină curățenie
+	
+	#~ pt win
+	#~ for %i in (landsat321-L-34-0??.tif) do do gdal_translate -of webp -b 3 -b 2 -b 1 -a_srs EPSG:3844 %i output\%i.img
 		
-		gdalinfo -mm output/tm_landsat321-L-34-079.img
+	#~ cd output && rm *.xml && ren landsat321-L-34-0??.tif.img landsat321-L-34-0??.img &&	cd ..
 		
 		
 #~ ex. 1 Transformati seturile de date srtm in Arc/Info ASCII GRID.
@@ -133,9 +138,14 @@
 			#~ COMPRESSION=DEFLATE (!) lossless pentru dem-uri
 		
 		for i in output/srtm-L-34-0??-s42.tif; do gdalwarp -s_srs EPSG:3844 -t_srs EPSG:28404 -dstnodata -9999 -r cubic -wm 1024 -multi -co compress=deflate $i $i-gk.tif; done
-			
+		
 		cd output; rename s42.tif-gk "gk" *-gk.tif; ll; cd ..
 			#~ curățenie
+		
+	#~ pt win
+	#~ for %i in (output\srtm-L-34-0??-s42.tif) do gdalwarp -s_srs EPSG:31700 -t_srs EPSG:28404 -dstnodata -9999 -r cubic -wm 1024 -multi -co compress=deflate %i %i-gk.tif
+		
+	#~ cd output && ren srtm-L-34-0??-s42.tif-gk.tif srtm-L-34-0??-gk.tif && cd..
 	
 #~ 6. Combină raștrii într-un mozaic optimizat
 	
@@ -183,6 +193,11 @@
 	for i in srtm-L-34-0??-s42.tif; do gdaldem hillshade $i h$i -co compress=deflate -z 3; done
 	cd..
 	
+	#~ pt win 
+	#~ cd output 
+	#~ for %i in (srtm-L-34-0??-s42.tif) do gdaldem hillshade %i h%i -co compress=deflate -z 3
+	#~ cd ..
+	
 	#~ slope
 	gdaldem slope output/tm_srtm-L-34-079-s42.tif output/stm_srtm-L-34-079-s42.tif -co compress=deflate
 	gdaldem slope output/tm_srtm-L-34-079-s42.tif output/stm_srtm-L-34-079-s421.tif -alg ZevenbergenThorne -co compress=deflate
@@ -193,6 +208,12 @@
 	cd output
 	for i in srtm-L-34-0??-s42.tif; do gdaldem slope $i s$i -p -co compress=deflate; done
 	cd ..
+	
+	#~ pt win
+	#~ cd output 
+	#~ for %i in (srtm-L-34-0??-s42.tif) do gdaldem slope %i s%i -p -co compress=deflate
+	#~ cd..
+
 	
 	#~ detalii suplimetare:
 	 #~ http://www.cartogis.org/docs/proceedings/2005/lee_clark.pdf
@@ -215,13 +236,16 @@
 #~ +++++++++++++++++++++++++++++++
 #~ Partea a IV-a. Teledetecție: (!)pan-sharpening
 #~ Următorul exercițiu este adaptat după: http://mapbox.com/blog/pansharpening-satellite-imagery-openstreetmap/
+
 	gdalbuildvrt -separate -srcnodata "0 0 0" -vrtnodata "0 0 0" tm_landsat321-L-34-079.vrt B3-L-34-079.tif B2-L-34-079.tif B1-L-34-079.tif
 	sed -i '6 i <ColorInterp>Red</ColorInterp>' tm_landsat321-L-34-079.vrt && sed -i '18 i <ColorInterp>Green</ColorInterp>' tm_landsat321-L-34-079.vrt && sed -i '30 i <ColorInterp>Blue</ColorInterp>' tm_landsat321-L-34-079.vrt
 	
 		#~ Comanda următoare execută pan-sharpening pentru tm_landsat321-L-34-079.vrt. Pentru a o executa e nevoie să instalați o bibliotecă suplimentară, denumită OTB. Pentru instalalre și alte detalii accesați: https://www.orfeo-toolbox.org/download/
 	
-	otbcli_BundleToPerfectSensor -ram 512 -inp BPan-L-34-079.tif -inxs tm_landsat321-L-34-079.vrt -out landsat321Pan-L-34-048.tif
+	otbcli_BundleToPerfectSensor -ram 512 -inp BPan-L-34-079.tif -inxs tm_landsat321-L-34-079.vrt -out output/landsat321Pan-L-34-048.tif
 	
-	gdal_translate -ot Byte -scale 0 3000 0 255 -a_nodata "0 0 0" landsat321Pan-L-34-048.tif landsat321Pan-L-34-048-scalat.tif
+	gdal_translate -ot Byte -scale 0 3000 0 255 -a_nodata "0 0 0" landsat321Pan-L-34-048.tif output/landsat321Pan-L-34-048-scalat.tif
 	gdalwarp -r cubic -wm 4096 -multi -srcnodata "0 0 0" -dstnodata "0 0 0" -dstalpha   -wo OPTIMIZE_SIZE=TRUE -wo UNIFIED_SRC_NODATA=YES -t_srs EPSG:3844 -co tiled=yes -co compress=lzw landsat321Pan-L-34-048-scalat.tif landsat321Pan-L-34-048-s42.tif
+	
+#~ detalii suplimentare http://landsat.usgs.gov/panchromatic_image_sharpening.php
 ```
